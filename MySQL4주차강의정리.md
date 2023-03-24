@@ -69,3 +69,69 @@ Quiz2. 이씨 성을 가진 유저의 포인트의 평균보다 큰 유저들의
 	on pu2.user_id = u.user_id 
 	where u.name = "이**"
 	)
+
+*With 절로 깔끔하게 쿼리문 정리하기
+ex)
+select c.title,
+       a.cnt_checkins,
+       b.cnt_total,
+       (a.cnt_checkins/b.cnt_total) as ratio
+from
+(
+	select course_id, count(distinct(user_id)) as cnt_checkins from checkins
+	group by course_id
+) a
+inner join
+(
+	select course_id, count(*) as cnt_total from orders
+	group by course_id 
+) b on a.course_id = b.course_id
+inner join courses c on a.course_id = c.course_id
+
+이런 쿼리를 좀 더 보기 간편하게 정리하는 방법이 with절 이용
+
+-> with table1 as (
+	select course_id, count(distinct(user_id)) as cnt_checkins from checkins
+	group by course_id
+), table2 as (
+	select course_id, count(*) as cnt_total from orders
+	group by course_id
+)
+select c.title,
+       a.cnt_checkins,
+       b.cnt_total,
+       (a.cnt_checkins/b.cnt_total) as ratio
+from table1 a inner join table2 b 
+on a.course_id = b.course_id
+inner join courses c on a.course_id = c.course_id
+
+*실전에서 유용한 SQL 문법
+1.문자열
+
+-SUBSTRING_INDEX : 문자열 쪼개기
+ex)
+select user_id, email, SUBSTRING_INDEX(email, '@', 1) from users
+:@를 기준으로 텍스트를 쪼개고, 그 중 첫 번째 조각을 가져오라는 뜻!
+
+ex)select user_id, email, SUBSTRING_INDEX(email, '@', -1) from users
+:@를 기준으로 텍스트를 쪼개고, 그 중 마지막 조각을 가져오라는 뜻!
+
+-SUBSTRING: 문자열 일부만 출력하기
+ex)
+select order_no, created_at, substring(created_at,1,10) as date from orders
+:SUBSTRING(문자열, 출력을 하고싶은 첫 글자의 위치, 몇개의 글자를 출력하고 싶은지)
+
+ex)
+select substring(created_at,1,10) as date, count(*) as cnt_date from orders
+group by date
+:일별로 몇 개씩 주문이 일어났는지 살펴보기
+
+2.CASE: 경우에 따라 원하는 값을 새 필드에 출력
+
+ex)포인트 보유액에 따라 다르게 표시해주기
+select pu.point_user_id, pu.point,
+case 
+when pu.point > 10000 then '잘 하고 있어요!'
+else '조금 더 달려주세요!'
+END as '구분'
+from point_users pu
